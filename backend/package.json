@@ -15,7 +15,9 @@
     "axios": "^1.18.1",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "fuse.js": "^7.4.2",
+    "transliteration": "^2.6.1"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

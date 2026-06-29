@@ -2,12 +2,15 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { JikanService } from './services/jikan.service';
+import { SearchService } from './services/search.service';
+import { SearchFilters } from './models';
 
 dotenv.config(); // подгрузка переменных окружения из энвов
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const jikanService = new JikanService();
+const searchService = new SearchService(jikanService);
 
 app.use(cors());
 app.use(express.json());
@@ -30,85 +33,99 @@ app.get('/api', (req, res) => {
     message: 'Anime Smart Search API',
     version: '1.0.0',
     endpoints: [
-      '/health',
-      '/api/anime/search?q=Naruto',
-      '/api/anime/genres',
-      '/api/anime/:id'
+      'GET  /health',
+      'GET  /api',
+      'GET  /api/anime/search?q=Naruto&minScore=8',
+      'GET  /api/anime/genres',
+      'GET  /api/anime/:id',
+      'GET  /api/anime/:id/recommendations',
+      'GET  /api/test/cache-stats',
+      'DELETE /api/test/cache'
     ]
   });
 });
 
-app.get('/api/test/search', async (req, res) => {
+app.get('/api/anime/search', async (req, res) => {
   try {
-    const query = req.query.q as string || 'Naruto';
-    const limit = parseInt(req.query.limit as string) || 5;
-    
-    const results = await jikanService.searchAnime({ q: query, limit });
+    const filters: SearchFilters = {
+      q: req.query.q as string,
+      genres: req.query.genres ? (req.query.genres as string).split(',') : undefined,
+      minScore: req.query.minScore ? parseFloat(req.query.minScore as string) : undefined,
+      maxScore: req.query.maxScore ? parseFloat(req.query.maxScore as string) : undefined,
+      minYear: req.query.minYear ? parseInt(req.query.minYear as string) : undefined,
+      maxYear: req.query.maxYear ? parseInt(req.query.maxYear as string) : undefined,
+      status: req.query.status as any,
+      type: req.query.type as any,
+      sortBy: (req.query.sortBy as any) || 'score',
+      sortOrder: (req.query.sortOrder as any) || 'desc',
+      limit: req.query.limit ? parseInt(req.query.limit as string) : 20,
+      offset: req.query.offset ? parseInt(req.query.offset as string) : 0,
+      minEpisodes: req.query.minEpisodes ? parseInt(req.query.minEpisodes as string) : undefined,
+      maxEpisodes: req.query.maxEpisodes ? parseInt(req.query.maxEpisodes as string) : undefined
+    };
+
+    const result = await searchService.smartSearch(filters);
     
     res.json({
       success: true,
-      count: results.length,
-      data: results.map(a => ({
-        id: a.mal_id,
-        title: a.title,
-        title_english: a.title_english,
-        type: a.type,
-        episodes: a.episodes,
-        status: a.status,
-        score: a.score,
-        rank: a.rank,
-        popularity: a.popularity,
-        year: a.year,
-        genres: a.genres.map(g => g.name).slice(0, 3)
-      }))
+      data: result.results,
+      total: result.total,
+      suggestions: result.suggestions,
+      filters: result.filters,
+      executionTime: result.executionTime
     });
   } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to fetch anime' 
+    res.status(500).json({
+      success: false,
+      error: 'Internal Server Error'
     });
   }
 });
 
-app.get('/api/test/anime/:id', async (req, res) => {
+app.get('/api/anime/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const anime = await jikanService.getAnimeById(id);
+    const anime = await searchService.getAnimeById(id);
     
     res.json({
       success: true,
-      data: {
-        id: anime.mal_id,
-        title: anime.title,
-        title_english: anime.title_english,
-        synopsis: anime.synopsis?.slice(0, 300) + '...',
-        genres: anime.genres.map(g => g.name),
-        score: anime.score,
-        year: anime.year,
-        status: anime.status,
-        episodes: anime.episodes
-      }
+      data: anime
     });
   } catch (error) {
-    res.status(404).json({ 
-      success: false, 
-      error: 'Anime not found' 
+    res.status(404).json({
+      success: false,
+      error: 'Anime not found'
     });
   }
 });
 
-app.get('/api/test/genres', async (req, res) => {
+app.get('/api/anime/genres', async (req, res) => {
   try {
-    const genres = await jikanService.getGenres();
-    res.json({ 
-      success: true, 
-      count: genres.length, 
-      data: genres 
+    const genres = await searchService.getGenres();
+    res.json({
+      success: true,
+      data: genres
     });
   } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to fetch genres' 
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch genres'
+    });
+  }
+});
+
+app.get('/api/anime/:id/recommendations', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const recommendations = await searchService.getRecommendations(id);
+    res.json({
+      success: true,
+      data: recommendations
+    });
+  } catch (error) {
+    res.status(404).json({
+      success: false,
+      error: 'Recommendations not found'
     });
   }
 });
@@ -137,7 +154,7 @@ app.use((req, res) => {
 });
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error('Ошибка сервера:', err);
+  console.error(`Ошибка сервера: ${err.message}`, err.stack); 
   res.status(500).json({
     success: false,
     error: 'Internal Server Error'
@@ -149,3 +166,4 @@ app.listen(PORT, () => {
   console.log(`Health: http://localhost:${PORT}/health`);
   console.log(`API: http://localhost:${PORT}/api`);
 });
+

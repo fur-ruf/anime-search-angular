@@ -1,15 +1,16 @@
 import axios from 'axios';
 import { CacheService } from './cache.service';
-import { logger } from '../utils/logger';
 import { Anime, AnimeSearchResponse } from '../models';
 
 const JIKAN_API = 'https://api.jikan.moe/v4';
 
 export class JikanService {
   private cache: CacheService;
+  private logger: Console;
 
   constructor() {
-    this.cache = new CacheService(5 * 60 * 1000); 
+    this.cache = new CacheService(5 * 60 * 1000);
+    this.logger = console; 
   }
 
   async searchAnime(params: {
@@ -24,12 +25,12 @@ export class JikanService {
     
     const cached = this.cache.get<Anime[]>(cacheKey);
     if (cached) {
-      logger.info(`Cache HIT: ${cacheKey}`);
+      this.logger.info(`Cache HIT: ${cacheKey}`);
       return cached;
     }
 
     try {
-      logger.info(`Запрос к Jikan API: ${JSON.stringify(params)}`);
+      this.logger.info(`Запрос к Jikan API: ${JSON.stringify(params)}`);
       
       const response = await axios.get<AnimeSearchResponse>(
         `${JIKAN_API}/anime`,
@@ -39,10 +40,10 @@ export class JikanService {
       const data = response.data.data;
       this.cache.set(cacheKey, data);
       
-      logger.info(`Jikan API вернул ${data.length} результатов`);
+      this.logger.info(`Jikan API вернул ${data.length} результатов`);
       return data;
     } catch (error) {
-      logger.error(`Ошибка Jikan API:`, error);
+      this.logger.error(`Ошибка Jikan API:`, error);
       throw error;
     }
   }
@@ -52,7 +53,7 @@ export class JikanService {
     
     const cached = this.cache.get<Anime>(cacheKey);
     if (cached) {
-      logger.info(`Cache HIT: ${cacheKey}`);
+      this.logger.info(`Cache HIT: ${cacheKey}`);
       return cached;
     }
 
@@ -64,10 +65,10 @@ export class JikanService {
       const anime = response.data.data;
       this.cache.set(cacheKey, anime);
       
-      logger.info(`Получено аниме #${id}: ${anime.title}`);
+      this.logger.info(`Получено аниме #${id}: ${anime.title}`);
       return anime;
     } catch (error) {
-      logger.error(`Ошибка получения аниме #${id}:`, error);
+      this.logger.error(`Ошибка получения аниме #${id}:`, error);
       throw error;
     }
   }
@@ -88,17 +89,17 @@ export class JikanService {
       const genres = response.data.data.map(g => g.name);
       this.cache.set(cacheKey, genres);
       
-      logger.info(`Получено ${genres.length} жанров`);
+      this.logger.info(`Получено ${genres.length} жанров`);
       return genres;
     } catch (error) {
-      logger.error(`Ошибка получения жанров:`, error);
+      this.logger.error(`Ошибка получения жанров:`, error);
       throw error;
     }
   }
 
   clearCache(): void {
     this.cache.clear();
-    logger.info('Кэш очищен');
+    this.logger.info('Кэш очищен');
   }
 
   getCacheStats(): { size: number; keys: string[] } {
