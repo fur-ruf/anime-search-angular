@@ -1,8 +1,8 @@
-import axios from 'axios';
-import { CacheService } from './cache.service';
-import { Anime, AnimeSearchResponse } from '../models';
+import axios from "axios";
+import { CacheService } from "./cache.service";
+import { Anime, AnimeSearchResponse } from "../models";
 
-const JIKAN_API = 'https://api.jikan.moe/v4';
+const JIKAN_API = "https://api.jikan.moe/v4";
 
 export class JikanService {
   private cache: CacheService;
@@ -10,7 +10,7 @@ export class JikanService {
 
   constructor() {
     this.cache = new CacheService(5 * 60 * 1000);
-    this.logger = console; 
+    this.logger = console;
   }
 
   async searchAnime(params: {
@@ -22,7 +22,7 @@ export class JikanService {
     page?: number;
   }): Promise<Anime[]> {
     const cacheKey = `search:${JSON.stringify(params)}`;
-    
+
     const cached = this.cache.get<Anime[]>(cacheKey);
     if (cached) {
       this.logger.info(`Cache HIT: ${cacheKey}`);
@@ -31,15 +31,15 @@ export class JikanService {
 
     try {
       this.logger.info(`Запрос к Jikan API: ${JSON.stringify(params)}`);
-      
+
       const response = await axios.get<AnimeSearchResponse>(
         `${JIKAN_API}/anime`,
-        { params }
+        { params },
       );
 
       const data = response.data.data;
       this.cache.set(cacheKey, data);
-      
+
       this.logger.info(`Jikan API вернул ${data.length} результатов`);
       return data;
     } catch (error) {
@@ -50,7 +50,7 @@ export class JikanService {
 
   async getAnimeById(id: number): Promise<Anime> {
     const cacheKey = `detail:${id}`;
-    
+
     const cached = this.cache.get<Anime>(cacheKey);
     if (cached) {
       this.logger.info(`Cache HIT: ${cacheKey}`);
@@ -59,12 +59,12 @@ export class JikanService {
 
     try {
       const response = await axios.get<{ data: Anime }>(
-        `${JIKAN_API}/anime/${id}`
+        `${JIKAN_API}/anime/${id}`,
       );
-      
+
       const anime = response.data.data;
       this.cache.set(cacheKey, anime);
-      
+
       this.logger.info(`Получено аниме #${id}: ${anime.title}`);
       return anime;
     } catch (error) {
@@ -74,8 +74,8 @@ export class JikanService {
   }
 
   async getGenres(): Promise<string[]> {
-    const cacheKey = 'genres:all';
-    
+    const cacheKey = "genres:all";
+
     const cached = this.cache.get<string[]>(cacheKey);
     if (cached) {
       return cached;
@@ -83,12 +83,12 @@ export class JikanService {
 
     try {
       const response = await axios.get<{ data: Array<{ name: string }> }>(
-        `${JIKAN_API}/genres/anime`
+        `${JIKAN_API}/genres/anime`,
       );
-      
-      const genres = response.data.data.map(g => g.name);
+
+      const genres = response.data.data.map((g) => g.name);
       this.cache.set(cacheKey, genres);
-      
+
       this.logger.info(`Получено ${genres.length} жанров`);
       return genres;
     } catch (error) {
@@ -97,9 +97,43 @@ export class JikanService {
     }
   }
 
+  async getRecommendations(id: number): Promise<Anime[]> {
+    const cacheKey = `recommendations:${id}`;
+
+    const cached = this.cache.get<Anime[]>(cacheKey);
+    if (cached) {
+      this.logger.info(`Cache HIT: ${cacheKey}`);
+      return cached;
+    }
+
+    try {
+      this.logger.info(
+        `Запрос рекомендаций к Jikan API: /anime/${id}/recommendations`,
+      );
+
+      const response = await axios.get<{ data: Array<{ entry: Anime }> }>(
+        `${JIKAN_API}/anime/${id}/recommendations`,
+      );
+
+      const recommendations = response.data.data
+        .slice(0, 10)
+        .map((rec) => rec.entry);
+
+      this.cache.set(cacheKey, recommendations);
+
+      this.logger.info(
+        `Получено ${recommendations.length} рекомендаций для аниме #${id}`,
+      );
+      return recommendations;
+    } catch (error) {
+      this.logger.error(`Ошибка получения рекомендаций для #${id}:`, error);
+      return [];
+    }
+  }
+
   clearCache(): void {
     this.cache.clear();
-    this.logger.info('Кэш очищен');
+    this.logger.info("Кэш очищен");
   }
 
   getCacheStats(): { size: number; keys: string[] } {

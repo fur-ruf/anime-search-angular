@@ -82,6 +82,21 @@ app.get('/api/anime/search', async (req, res) => {
   }
 });
 
+app.get('/api/anime/genres', async (req, res) => {
+  try {
+    const genres = await searchService.getGenres();
+    res.json({
+      success: true,
+      data: genres
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch genres'
+    });
+  }
+});
+
 app.get('/api/anime/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
@@ -95,21 +110,6 @@ app.get('/api/anime/:id', async (req, res) => {
     res.status(404).json({
       success: false,
       error: 'Anime not found'
-    });
-  }
-});
-
-app.get('/api/anime/genres', async (req, res) => {
-  try {
-    const genres = await searchService.getGenres();
-    res.json({
-      success: true,
-      data: genres
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch genres'
     });
   }
 });
@@ -167,3 +167,4 @@ app.listen(PORT, () => {
   console.log(`API: http://localhost:${PORT}/api`);
 });
 
+export default app;

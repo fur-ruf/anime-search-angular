@@ -1,6 +1,6 @@
 export interface Anime {
   mal_id: number;
-  url: string; 
+  url?: string; 
 
   images: {
     jpg: {
@@ -50,9 +50,7 @@ export interface Anime {
   synopsis?: string; 
   background?: string; 
 
-  rating?: 'G - All Ages' | 'PG - Children' | 'PG-13 - Teens 13 or older' | 
-           'R - 17+ (violence & profanity)' | 'R+ - Mild Nudity' | 
-           'Rx - Hentai';
+  rating?: string;
   
   genres: Array<{
     mal_id: number;
