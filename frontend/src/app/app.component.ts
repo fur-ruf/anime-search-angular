@@ -1,12 +1,13 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterOutlet, RouterModule, Router } from '@angular/router';
 import { AnimeService } from './services/anime.service';
 import { SearchFilters } from './types/api.types';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterOutlet, RouterModule],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })
@@ -15,7 +16,10 @@ export class AppComponent implements OnInit {
   loading = false;
   error = '';
 
-  constructor(private animeService: AnimeService) {}
+  constructor(
+    private animeService: AnimeService,
+    private router: Router
+  ) {}
 
   ngOnInit() {
     this.search('Naruto');
@@ -38,17 +42,19 @@ export class AppComponent implements OnInit {
       next: (response: any) => {
         this.animeList = response.data;
         this.loading = false;
-        console.log('Найдено:', response.total, 'аниме');
       },
       error: (err: any) => {
         this.error = 'Ошибка загрузки: ' + (err.message || 'Неизвестная ошибка');
         this.loading = false;
-        console.error('Search error:', err);
       }
     });
   }
 
-  goToDetail(id: number) {
-    console.log('Переход к аниме #' + id);
+  goHome() {
+    this.router.navigate(['/']);
+  }
+
+  isDetailPage(): boolean {
+    return this.router.url.includes('/anime/');
   }
 }

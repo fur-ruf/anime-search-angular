@@ -1,1 +1,96 @@
-<p>anime-detail works!</p>
+<div *ngIf="loading" class="loading-container">
+  Загрузка...
+</div>
+
+<div *ngIf="error" class="error-container">
+  {{ error }}
+</div>
+
+<div *ngIf="anime && !loading && !error" class="detail-container">
+  <button class="back-button" (click)="goBack()">
+    Назад к поиску
+  </button>
+
+  <div class="detail-content">
+    <div class="detail-image">
+      <img
+        [src]="anime.images.jpg.large_image_url || anime.images.jpg.image_url"
+        [alt]="anime.title"
+        class="detail-poster"
+        (error)="anime.images.jpg.image_url = 'https://via.placeholder.com/400x600?text=No+Image'"
+      >
+    </div>
+
+    <div class="detail-info">
+      <h1 class="detail-title">{{ anime.title }}</h1>
+
+      <div *ngIf="anime.title_english && anime.title_english !== anime.title" class="detail-subtitle">
+        {{ anime.title_english }}
+      </div>
+
+      <div class="detail-meta">
+        <div class="meta-item">
+          <span class="meta-label">Рейтинг</span>
+          <span class="meta-value">{{ anime.score || 'N/A' }}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Год</span>
+          <span class="meta-value">{{ anime.year || 'Неизвестно' }}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Статус</span>
+          <span class="meta-value">{{ anime.status }}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Тип</span>
+          <span class="meta-value">{{ anime.type }}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Серий</span>
+          <span class="meta-value">{{ anime.episodes || 'Неизвестно' }}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Длительность</span>
+          <span class="meta-value">{{ anime.duration || 'Неизвестно' }}</span>
+        </div>
+      </div>
+
+      <div class="detail-genres">
+        <span *ngFor="let genre of anime.genres" class="detail-genre-tag">
+          {{ genre.name }}
+        </span>
+      </div>
+
+      <div *ngIf="anime.synopsis" class="detail-synopsis">
+        <h3>Описание</h3>
+        <p>{{ anime.synopsis }}</p>
+      </div>
+
+      <div class="detail-stats">
+        <span *ngIf="anime.rank">Рейтинг #{{ anime.rank }}</span>
+        <span *ngIf="anime.popularity">Популярность #{{ anime.popularity }}</span>
+        <span *ngIf="anime.members">Участников: {{ anime.members }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="recommendations.length > 0" class="recommendations">
+    <h2>Похожие аниме</h2>
+    <div class="recommendations-grid">
+      <div
+        *ngFor="let rec of recommendations.slice(0, 8)"
+        class="recommendation-card"
+        (click)="goToAnime(rec.mal_id)"
+      >
+        <img
+          [src]="rec.images.jpg.image_url"
+          [alt]="rec.title"
+          class="rec-image"
+          (error)="rec.images.jpg.image_url = 'https://via.placeholder.com/150x200?text=No+Image'"
+        >
+        <div class="rec-title">{{ rec.title }}</div>
+        <div class="rec-score">{{ rec.score || 'N/A' }}</div>
+      </div>
+    </div>
+  </div>
+</div>
